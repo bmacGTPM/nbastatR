@@ -1,7 +1,7 @@
 # slugs -------------------------------------------------------------------
 
 .dictionary_boxscore_slugs <-
-  memoise::memoise(function(){
+  memoise(function(){
     tibble(nameSlug = c("traditional", "advanced", "scoring","misc", "usage", "four factors",
                             "hustle", "tracking", "winprob", "defense", "matchups", "summary"),
                slugNBA = c("boxscoretraditionalv2","boxscoreadvancedv2", "boxscorescoringv2", "boxscoremiscv2",
@@ -15,6 +15,7 @@
 
 
 .get_box_score_type <-
+
   #memoise::memoise(
     function(game_id = 21700865,
            league = "NBA",
@@ -71,8 +72,9 @@
       )
 
     if (return_message) {
-      glue::glue("Getting {league} {result_type} {boxscore} box score for game {game_id}") %>% cat(fill = T)
+      glue("Getting {league} {result_type} {boxscore} box score for game {game_id}") %>% cat(fill = T)
     }
+
 
     # if (league == "WNBA") {
     #
@@ -91,8 +93,9 @@
     #
     # }
 
+
     if (boxscore == "hustle") {
-      json_url <- glue::glue("https://stats.nba.com/stats/hustlestatsboxscore?GameID=00{game_id}") %>% as.character()
+      json_url <- glue("https://stats.nba.com/stats/hustlestatsboxscore?GameID=00{game_id}") %>% as.character()
     }
 
     json <-
@@ -102,7 +105,7 @@
     if (names(json) %>% str_detect( "g") %>% sum(na.rm = T) > 0) {
       json_data <- json$g
       df_classes <-
-        json_data %>% future_map_dfr(class) %>%
+        json_data %>% map_dfr(class) %>%
         gather(column, class)
 
       base_cols <-
@@ -115,7 +118,7 @@
 
       df_base <-
         df_base %>%
-        purrr::set_names(names(df_base) %>%
+        set_names(names(df_base) %>%
         resolve_nba_names()) %>%
         munge_nba_data() %>%
         mutate(dateGame = lubridate::ymd(dateGame))
@@ -130,7 +133,7 @@
 
       all_data <-
         list_cols %>%
-        future_map_dfr(function(col){
+        map_dfr(function(col){
           d <-
             json_data[[col]]
 
@@ -144,7 +147,7 @@
 
             df_base <-
               df_base %>%
-              purrr::set_names(names(df_base) %>% resolve_nba_names()) %>%
+              set_names(names(df_base) %>% resolve_nba_names()) %>%
               unite(nameTeam, cityTeam, teamName, sep = " ") %>%
               mutate(idGame = game_id)
 
@@ -153,7 +156,7 @@
 
             df_stats <-
               df_stats %>%
-              purrr::set_names(names(df_stats) %>% resolve_nba_names()) %>%
+              set_names(names(df_stats) %>% resolve_nba_names()) %>%
               munge_nba_data() %>%
               unite(namePlayer, nameFirst, nameLast, sep = " ") %>%
               mutate(idGame = game_id)
@@ -212,12 +215,12 @@
 
     data <-
       data %>%
-      purrr::set_names(actual_names) %>%
+      set_names(actual_names) %>%
       munge_nba_data()
 
 
     if (table_id == 2 &
-        data %>% tibble::has_name("nameTeam") &
+        data %>% has_name("nameTeam") &
         league %>% str_to_upper() == "NBA") {
       data <-
         data %>%
@@ -267,13 +270,13 @@
           "ftm"
         )] %>% str_c(., "Allowed")
 
-      if (data %>% tibble::has_name("tov")) {
+      if (data %>% has_name("tov")) {
         data <-
           data %>%
           dplyr::rename(tovForced = tov)
       }
 
-      if (data %>% tibble::has_name("possessions")) {
+      if (data %>% has_name("possessions")) {
         data <-
           data %>%
           dplyr::rename(possessionsDefense = possessions)
@@ -294,7 +297,7 @@
 
       df_team <-
         df_team %>%
-        purrr::set_names(actual_names) %>%
+        set_names(actual_names) %>%
         munge_nba_data()
 
       data <-
@@ -339,6 +342,7 @@
       select(-cols) %>%
       select(typeBoxScore, typeResult, everything())
     gc()
+    closeAllConnections()
     data
   }
 #)
@@ -386,7 +390,7 @@ box_scores <-
            join_data = TRUE,
            assign_to_environment = TRUE,
            return_message = TRUE) {
-    if (game_ids %>% purrr::is_null()) {
+    if (game_ids %>% is_null()) {
       stop("Please enter game ids")
     }
 
@@ -404,11 +408,11 @@ box_scores <-
       dplyr::as_tibble()
 
     get_box_score_type_safe <-
-      purrr::possibly(.get_box_score_type, tibble())
+      possibly(.get_box_score_type, tibble())
 
     all_data <-
       1:nrow(input_df) %>%
-      future_map_dfr(function(x) {
+      map_dfr(function(x) {
         df_row <-
           input_df %>% slice(x)
 
@@ -431,7 +435,7 @@ box_scores <-
 
       all_data <-
         results %>%
-        future_map_dfr(function(result) {
+        map_dfr(function(result) {
           df_results <-
             all_data %>%
             filter(typeResult == result)
@@ -441,7 +445,7 @@ box_scores <-
 
           all_tables <-
             tables %>%
-            future_map(function(table) {
+            map(function(table) {
               table_slug <- table %>% str_to_lower()
               data <-
                 df_results %>%
@@ -488,10 +492,10 @@ box_scores <-
 
           all_tables <-
             all_tables %>%
-            purrr::reduce(left_join) %>%
+            reduce(left_join) %>%
             suppressMessages()
 
-          if (result == "player" & all_data %>% tibble::has_name("groupStartPosition")) {
+          if (result == "player" & all_data %>% has_name("groupStartPosition")) {
             all_tables <-
               all_tables %>%
               mutate(isStarter = ifelse(is.na(groupStartPosition), F, T)) %>%
@@ -505,14 +509,14 @@ box_scores <-
         all_data$typeResult %>%
           walk(function(result) {
             table_name <-
-              glue::glue("dataBoxScore{str_to_title(result)}{str_to_upper(league)}")
+              glue("dataBoxScore{str_to_title(result)}{str_to_upper(league)}")
             df_table <-
               all_data %>%
               filter(typeResult == result) %>%
               select(-typeResult) %>%
               unnest()
 
-            if (df_table %>% tibble::has_name("groupStartPosition")) {
+            if (df_table %>% has_name("groupStartPosition")) {
               df_table <-
                 df_table %>%
                 mutate(isStarter = ifelse(is.na(groupStartPosition), F, T)) %>%
@@ -538,18 +542,18 @@ box_scores <-
             data <-
               df_tables$typeBoxScore %>%
               unique() %>%
-              future_map(function(type) {
+              map(function(type) {
                 df_table <-
                   df_tables %>%
                   filter(typeBoxScore == type) %>%
-                  tidyr::unnest(.drop = T) %>%
+                  unnest(.drop = T) %>%
                   select(-typeBoxScore)
                 type_slug <-
                   type %>% str_split("\\ ") %>% flatten_chr() %>%
                   str_to_title() %>% str_c(collapse = "")
 
                 table_name <-
-                  glue::glue('dataBoxScore{type_slug}{str_to_title(result)}{str_to_upper(league)}') %>% as.character()
+                  glue('dataBoxScore{type_slug}{str_to_title(result)}{str_to_upper(league)}') %>% as.character()
 
                 assign(x = table_name, df_table, envir = .GlobalEnv)
               })
