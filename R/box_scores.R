@@ -3,19 +3,21 @@
 .dictionary_boxscore_slugs <-
   memoise(function(){
     tibble(nameSlug = c("traditional", "advanced", "scoring","misc", "usage", "four factors",
-                            "hustle", "tracking", "winprob", "defense", "matchups"),
+                            "hustle", "tracking", "winprob", "defense", "matchups", "summary"),
                slugNBA = c("boxscoretraditionalv2","boxscoreadvancedv2", "boxscorescoringv2", "boxscoremiscv2",
                            "boxscoreusagev2", "boxscorefourfactorsv2", "hustlestatsboxscore",
                            "boxscoreplayertrackv2", "winprobabilitypbp", "boxscoredefensive",
-                           "boxscorematchups"),
+                           "boxscorematchups", "boxscoresummaryv2"),
                slugBase = c("traditional", "advanced", "scoring", "misc", "usage", "fourfactors",
-                            "hustlestats", "playertrack", "winprob", "defense", "matchups")) %>%
+                            "hustlestats", "playertrack", "winprob", "defense", "matchups", "summary")) %>%
       mutate(typeStatsCall = "boxscore")
   })
 
 
 .get_box_score_type <-
-  memoise(function(game_id = 21700865,
+
+  #memoise::memoise(
+    function(game_id = 21700865,
            league = "NBA",
            result_type = "player",
            boxscore = "tracking",
@@ -36,10 +38,14 @@
       table_id <- 2
     }
 
-    if (league == "WNBA") {
-      table_id <- case_when(result_type == "player" ~ 2,
-                            TRUE ~ 3)
+    if (boxscore %>% str_to_lower() %>% str_detect("summary")) {
+      table_id <- 5
     }
+
+    # if (league == "WNBA") {
+    #   table_id <- case_when(result_type == "player" ~ 2,
+    #                         TRUE ~ 3)
+    # }
 
     df_box_slugs <-
       .dictionary_boxscore_slugs()
@@ -69,20 +75,24 @@
       glue("Getting {league} {result_type} {boxscore} box score for game {game_id}") %>% cat(fill = T)
     }
 
-    if (league == "WNBA") {
 
-      json_url <-
-        case_when(
-        boxscore %>% str_to_lower() == "advanced" ~ glue(
-          "https://stats.nba.com/stats/wnbaadvancedboxscore?GameID={game_id}"
-        ),
-        TRUE ~ glue(
-          "https://data.wnba.com/data/5s/v2015/json/mobile_teams/wnba/2018/scores/gamedetail/{game_id}_gamedetail.json"
-        )
-      ) %>%
-        URLencode() %>%
-        as.character()
-    }
+    # if (league == "WNBA") {
+    #
+    #   json_url <-
+    #     case_when(
+    #     boxscore %>% str_to_lower() == "advanced" ~ glue::glue(
+    #       "https://stats.nba.com/stats/wnbaadvancedboxscore?GameID={game_id}"
+    #     ),
+    #     TRUE ~ glue::glue(
+    #       "https://data.wnba.com/data/5s/v2015/json/mobile_teams/wnba/{season}/scores/gamedetail/{game_id}_gamedetail.json"
+    #     )
+    #   ) %>%
+    #     URLencode() %>%
+    #     as.character()
+    #
+    #
+    # }
+
 
     if (boxscore == "hustle") {
       json_url <- glue("https://stats.nba.com/stats/hustlestatsboxscore?GameID=00{game_id}") %>% as.character()
@@ -314,6 +324,13 @@
         dplyr::rename(pfShootingDrawn = pfShootingCommitted)
     }
 
+    if (boxscore %>% str_to_lower() %>% str_detect("summary")) {
+      data <-
+        data %>%
+        mutate(idGame = game_id)
+      if(!'countAttendance' %in% colnames(data)){data$countAttendance=NA}
+    }
+
     data <-
       data %>%
       mutate(slugLeague = league) %>%
@@ -327,7 +344,8 @@
     gc()
     closeAllConnections()
     data
-  })
+  }
+#)
 
 #' NBA box scores
 #'
@@ -378,8 +396,8 @@ box_scores <-
 
     if (league == "WNBA") {
       box_score_types <- str_to_lower(box_score_types)
-      result_types <- "player"
-      box_score_types <- box_score_types[box_score_types %in% c("traditional", "advanced")]
+      #result_types <- "player"
+      box_score_types <- box_score_types[box_score_types %in% c("traditional", "advanced", 'summary')]
     }
 
     input_df <-
@@ -388,8 +406,6 @@ box_scores <-
                   boxscore = box_score_types,
                   stringsAsFactors = F) %>%
       dplyr::as_tibble()
-
-
 
     get_box_score_type_safe <-
       possibly(.get_box_score_type, tibble())
@@ -400,18 +416,20 @@ box_scores <-
         df_row <-
           input_df %>% slice(x)
 
-        df_row %$%
-          get_box_score_type_safe(
+        temp = df_row %$%
+          .get_box_score_type(
             game_id = game_id,
             result_type = result_type,
             boxscore = boxscore,
             league = league,
             return_message = return_message
           )
+        temp
       })
 
-    if (join_data  &&
-        league == "NBA") {
+    if (join_data  #&&
+        #league == "NBA"
+        ) {
       results <-
         all_data$typeResult %>% unique()
 

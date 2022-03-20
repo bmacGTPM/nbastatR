@@ -45,21 +45,23 @@
 
     season_name_slug <- URLencode(season_type)
 
-    if (league %>% str_to_upper() == "WNBA") {
-      url <-
-        glue(
-          "https://stats.nba.com/stats/wnbaseasonstats?College=&Conference=&Country=&DateFrom=&DateTo=&Division=&DraftPick=&DraftYear=&GameScope=&GameSegment=&Height=&LastNGames=0&LeagueID=10&Location=&MeasureType=Base&Month=0&OpponentTeamID=&Outcome=&PORound=&PaceAdjust=&PerMode=PerGame&Period=&PlayerExperience=&PlayerPosition=&PlusMinus=&Rank=&Season={season}&SeasonSegment=&SeasonType={URLencode(season_type)}&ShotClockRange=&StarterBench=&StatCategory=PTS&TeamID=0&VsConference=&VsDivision=&Weight="
-        ) %>%
-        URLencode() %>%
-        as.character()
 
-    } else {
+    # if (league %>% str_to_upper() == "WNBA") {
+    #   url <-
+    #     glue::glue(
+    #       "https://stats.nba.com/stats/wnbaseasonstats?College=&Conference=&Country=&DateFrom=&DateTo=&Division=&DraftPick=&DraftYear=&GameScope=&GameSegment=&Height=&LastNGames=0&LeagueID=10&Location=&MeasureType=Base&Month=0&OpponentTeamID=&Outcome=&PORound=&PaceAdjust=&PerMode=PerGame&Period=&PlayerExperience=&PlayerPosition=&PlusMinus=&Rank=&Season={season}&SeasonSegment=&SeasonType={URLencode(season_type)}&ShotClockRange=&StarterBench=&StatCategory=PTS&TeamID=0&VsConference=&VsDivision=&Weight="
+    #     ) %>%
+    #     URLencode() %>%
+    #     as.character()
+    #
+    # } else {
+
       url <-
         glue(
           "https://stats.nba.com/stats/leaguegamelog?Counter=1000&Season={season_slug}&Direction=DESC&LeagueID={league_slug}&PlayerOrTeam={table_slug}&SeasonType={season_name_slug}&Sorter=DATE"
         ) %>% as.character()
 
-    }
+    #}
 
 
     json <-
