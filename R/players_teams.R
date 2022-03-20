@@ -598,6 +598,7 @@
     }
 
 
+
     slugSeason <-
       generate_season_slug(season = season)
 
@@ -665,7 +666,7 @@
 
     data <-
       1:table_length %>%
-      future_map_dfr(function(table_id) {
+      map_dfr(function(table_id) {
 
         table_name <-
           json$resultSets$name[table_id]
@@ -1143,7 +1144,7 @@ teams_players_stats <-
       possibly(.players_teams_season_summary, tibble())
     all_data <-
       1:nrow(input_df) %>%
-      future_map_dfr(function(x) {
+      map_dfr(function(x) {
         df_row <-
           input_df %>% slice(x)
 
