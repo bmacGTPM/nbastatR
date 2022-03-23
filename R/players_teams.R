@@ -1149,7 +1149,7 @@ teams_players_stats <-
           input_df %>% slice(x)
 
         df_row %$%
-          players_teams_season_summary_safe(
+          .players_teams_season_summary(
             season = season,
             table = table,
             type = type,
